@@ -3,15 +3,36 @@ import { useEffect, useState } from 'react';
 import { BsRobot } from 'react-icons/bs';
 import { motion } from 'framer-motion';
 
+interface VapiSDK {
+  run: (config: VapiConfig) => VapiInstance;
+}
+
+interface VapiConfig {
+  apiKey: string;
+  assistant: string;
+  config: {
+    button: {
+      position: string;
+      size: string;
+      color: string;
+    };
+  };
+}
+
+interface VapiInstance {
+  start: () => void;
+  stop: () => void;
+}
+
 declare global {
   interface Window {
-    vapiSDK: any;
+    vapiSDK: VapiSDK;
   }
 }
 
 export default function AgentPage() {
   const [isCallActive, setIsCallActive] = useState(false);
-  const [vapiInstance, setVapiInstance] = useState<any>(null);
+  const [vapiInstance, setVapiInstance] = useState<VapiInstance | null>(null);
 
   useEffect(() => {
     // Load Vapi SDK

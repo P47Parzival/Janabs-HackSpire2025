@@ -1,8 +1,8 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { FiMenu, FiX, FiBook, FiUser, FiBarChart2, FiMessageCircle, FiFileText, FiAward } from 'react-icons/fi';
-import { MdQuiz, MdOndemandVideo } from 'react-icons/md';
-import { BsRobot, BsLightbulb } from 'react-icons/bs';
+import { FiMenu, FiX, FiBarChart2, FiFileText } from 'react-icons/fi';
+import { MdQuiz } from 'react-icons/md';
+import { BsRobot } from 'react-icons/bs';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 
@@ -13,14 +13,17 @@ export default function HomePage() {
 
   useEffect(() => {
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
+      anchor.addEventListener('click', (e: Event) => {
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-          window.scrollTo({
-            top: target.offsetTop - 80, // Offset for navbar
-            behavior: 'smooth'
-          });
+        const href = (anchor as HTMLAnchorElement).getAttribute('href');
+        if (href) {
+          const target = document.querySelector(href);
+          if (target instanceof HTMLElement) {
+            window.scrollTo({
+              top: target.offsetTop - 80, // Offset for navbar
+              behavior: 'smooth'
+            });
+          }
         }
       });
     });
@@ -142,10 +145,7 @@ export default function HomePage() {
       });
     }
     
-    let time = 0;
     const drawBackground = () => {
-      time += 0.005;
-      
       // Dark gradient background
       const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
       gradient.addColorStop(0, '#0f172a'); // Dark blue
@@ -248,35 +248,39 @@ export default function HomePage() {
         const endX = startX + length * Math.cos(angle);
         const endY = startY + length * Math.sin(angle);
         
-        const shootingStarGradient = ctx.createLinearGradient(startX, startY, endX, endY);
-        shootingStarGradient.addColorStop(0, 'rgba(255, 255, 255, 0.0)');
-        shootingStarGradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.5)');
-        shootingStarGradient.addColorStop(1.0, 'rgba(255, 255, 255, 0.0)');
+        // Draw shooting star with glow
+        const gradient = ctx.createLinearGradient(startX, startY, endX, endY);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
         
-        ctx.strokeStyle = shootingStarGradient;
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(startX, startY);
         ctx.lineTo(endX, endY);
         ctx.stroke();
       }
       
-      // Update circle positions
+      // Draw and update circles
       circles.forEach(circle => {
         circle.x += circle.vx;
         circle.y += circle.vy;
         
-        // Bounce off walls
-        if (circle.x < -circle.radius) circle.x = canvas.width + circle.radius;
-        if (circle.x > canvas.width + circle.radius) circle.x = -circle.radius;
-        if (circle.y < -circle.radius) circle.y = canvas.height + circle.radius;
-        if (circle.y > canvas.height + circle.radius) circle.y = -circle.radius;
+        // Bounce off edges
+        if (circle.x - circle.radius < 0 || circle.x + circle.radius > canvas.width) {
+          circle.vx *= -1;
+        }
+        if (circle.y - circle.radius < 0 || circle.y + circle.radius > canvas.height) {
+          circle.vy *= -1;
+        }
         
-        // Draw gradient circle with glow effect
-        const gradient = ctx.createRadialGradient(circle.x, circle.y, 0, circle.x, circle.y, circle.radius);
-        gradient.addColorStop(0, circle.color + '40'); // 25% opacity
-        gradient.addColorStop(0.8, circle.color + '10'); // 6% opacity
-        gradient.addColorStop(1, circle.color + '00'); // 0% opacity
+        // Draw circle with gradient
+        const gradient = ctx.createRadialGradient(
+          circle.x, circle.y, 0,
+          circle.x, circle.y, circle.radius
+        );
+        gradient.addColorStop(0, `${circle.color}40`); // 25% opacity
+        gradient.addColorStop(1, `${circle.color}00`); // 0% opacity
         
         ctx.fillStyle = gradient;
         ctx.beginPath();
@@ -289,18 +293,9 @@ export default function HomePage() {
     
     drawBackground();
     
-    // Handle window resize by recreating the stars
-    const handleResize = () => {
-      resizeCanvas();
-      createStars();
-    };
-    
-    window.addEventListener('resize', handleResize);
-    
     return () => {
-      window.removeEventListener('resize', resizeCanvas);
-      window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', resizeCanvas);
     };
   }, []);
 

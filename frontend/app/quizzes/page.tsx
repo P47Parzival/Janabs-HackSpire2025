@@ -4,7 +4,7 @@ import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { generateAdaptiveLearningPath, AdaptiveLearningPathInput, AdaptiveLearningPathOutput } from "@/app/ai/flows/adaptive-learning-path";
+import { generateAdaptiveLearningPath, AdaptiveLearningPathOutput } from "@/app/ai/flows/adaptive-learning-path";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/app/components/ui/form";
@@ -43,6 +43,14 @@ interface ActiveQuiz {
   answers: number[];
   completed: boolean;
   score: number;
+}
+
+interface Quiz {
+  id: string;
+  title: string;
+  topic: string;
+  difficulty: string;
+  completed?: boolean;
 }
 
 const formSchema = z.object({
@@ -88,7 +96,7 @@ export default function AdaptiveLearningAssistant() {
   }
 
   // Function to generate quiz questions based on the topic and difficulty
-  const startQuiz = async (quiz: any) => {
+  const startQuiz = async (quiz: Quiz) => {
     setIsGeneratingQuiz(true);
     
     try {
