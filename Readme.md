@@ -14,22 +14,49 @@ MindSurf is an adaptive learning platform that leverages AI to personalize educa
 - **Progress Tracking**: Visual insights into your learning journey with personalized recommendations
 - **Voice Assistant**: Natural voice interaction using VAPI for a hands-free learning experience
 
+## AI agent wokflow diagram and RAG Diagram
+
+<div align="center">
+  <div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 20px;">
+    <img src="https://github.com/P47Parzival/Susap/blob/main/public/diagram-export-13-4-2025-7_31_11-am.png?raw=true" alt="AI workflow" width="350"/>
+    <img src="https://github.com/P47Parzival/Susap/blob/main/public/MindsurfRAG5.gif?raw=true" alt="Architecture Diagram" width="450"/>
+  </div>
+</div>
+
 ## 🛠️ Technology Stack
 
+<h2 align="center">🖥️ Frontend Stack</h2>
 <p align="center">
   <img src="https://img.shields.io/badge/Next.js-black?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" />
-  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/TailwindCSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="TailwindCSS" />
-  <img src="https://img.shields.io/badge/Google_AI-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Google AI" />
   <img src="https://img.shields.io/badge/Framer_Motion-black?style=for-the-badge&logo=framer&logoColor=white" alt="Framer Motion" />
   <img src="https://img.shields.io/badge/RadixUI-161618?style=for-the-badge&logo=radix-ui&logoColor=white" alt="Radix UI" />
-  <img src="https://img.shields.io/badge/Shadcn/ui-000000?style=for-the-badge&logo=shadcnui&logoColor=white" alt="Shadcn" />
-  <img src="https://img.shields.io/badge/LangChain-EC4899?style=for-the-badge&logo=chainlink&logoColor=white" alt="LangChain" />
-  <img src="https://img.shields.io/badge/ChromaDB-4F46E5?style=for-the-badge&logo=mongodb&logoColor=white" alt="ChromaDB" />
-  <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Zod-3E67B1?style=for-the-badge&logo=zod&logoColor=white" alt="Zod" />
+  <img src="https://img.shields.io/badge/Shadcn/ui-000000?style=for-the-badge&logo=shadcnui&logoColor=white" alt="Shadcn UI" />
   <img src="https://img.shields.io/badge/Lucide_React-FF4154?style=for-the-badge&logo=react&logoColor=white" alt="Lucide React" />
 </p>
+
+<h2 align="center">🛠️ Backend Stack</h2>
+<p align="center">
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Zod-3E67B1?style=for-the-badge&logo=zod&logoColor=white" alt="Zod" />
+</p>
+
+<h2 align="center">☁️ Cloud & Database & Payment</h2>
+<p align="center">
+  <a href="https://firebase.google.com/"><img src="https://img.shields.io/badge/-Firebase-black?style=for-the-badge&logoColor=white&logo=firebase&color=DD2C00" alt="Firebase" /></a>
+  <img src="https://img.shields.io/badge/ChromaDB-4F46E5?style=for-the-badge&logo=mongodb&logoColor=white" alt="ChromaDB" />
+  <a href="https://stripe.com/"><img src="https://img.shields.io/badge/-Stripe-black?style=for-the-badge&logoColor=white&logo=stripe&color=008CDD" alt="Stripe" /></a>
+</p>
+
+<h2 align="center">🧠 AI & LLMs</h2>
+<p align="center">
+  <img src="https://img.shields.io/badge/Google_AI-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Google AI" />
+  <img src="https://img.shields.io/badge/LangChain-EC4899?style=for-the-badge&logo=chainlink&logoColor=white" alt="LangChain" />
+  <img src="https://img.shields.io/badge/Vapi%20AI-4F46E5?style=for-the-badge&logo=voice-over&logoColor=white" alt="Vapi AI" />
+</p>
+
+
 
 - **Next.js** + **FastAPI**: Modern full-stack development with React and Python
 - **TailwindCSS** + **Framer Motion**: Beautiful, responsive UI with fluid animations
