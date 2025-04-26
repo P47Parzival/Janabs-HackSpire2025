@@ -52,10 +52,45 @@ export default function ContentAnalysis() {
     }
   };
 
-  const handleYoutubeSubmit = (e: React.FormEvent) => {
+  const handleYoutubeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement YouTube transcript extraction
-    console.log('Processing YouTube URL:', youtubeUrl);
+    if (!youtubeUrl.trim()) return;
+
+    setError(null);
+    setIsProcessing(true);
+    setUploadProgress(0);
+
+    try {
+      const response = await fetch('http://localhost:8000/process-youtube', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: youtubeUrl.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to process YouTube video');
+      }
+
+      const data = await response.json();
+      setConversationId(data.conversation_id);
+      setMessages([{
+        text: "YouTube video processed successfully! You can now ask questions about it.",
+        isUser: false
+      }]);
+      setUploadProgress(100);
+      setYoutubeUrl('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while processing the YouTube video');
+      setMessages([]);
+      setConversationId(null);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -174,8 +209,8 @@ export default function ContentAnalysis() {
                 />
                 <button
                   type="submit"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={isProcessing}
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isProcessing || !youtubeUrl.trim()}
                 >
                   Analyze
                 </button>
@@ -195,7 +230,7 @@ export default function ContentAnalysis() {
               {messages.length === 0 ? (
                 <div className="text-center text-gray-500 mt-20">
                   <FiMessageSquare className="text-4xl mx-auto mb-4" />
-                  <p>Upload a document to start asking questions</p>
+                  <p>Upload a document or enter a YouTube URL to start asking questions</p>
                 </div>
               ) : (
                 messages.map((message, index) => (
