@@ -40,12 +40,18 @@ export async function generateAdaptiveLearningPath(
   input: AdaptiveLearningPathInput
 ): Promise<AdaptiveLearningPathOutput> {
   try {
-    const response = await fetch('http://localhost:8000/analyze-learning', {
+    // Use environment variable for the API URL
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    
+    const response = await fetch(`${API_URL}/analyze-learning`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(input),
+      // Add these options to help with server-side fetch issues
+      cache: 'no-store',
+      next: { revalidate: 0 }
     });
 
     if (!response.ok) {
@@ -53,10 +59,7 @@ export async function generateAdaptiveLearningPath(
       throw new Error(errorData.detail || 'Failed to generate learning path');
     }
 
-    const responseText = await response.text();
-    // Remove the ```json and ``` markers if present
-    const cleanJson = responseText.replace(/```json\n|\n```/g, '');
-    const data = JSON.parse(cleanJson);
+    const data = await response.json();
     
     return {
       learning_paths: data.learning_paths,

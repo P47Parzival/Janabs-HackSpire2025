@@ -324,7 +324,7 @@ export default function HomePage() {
       path: "/quizzes"
     },
     {
-      title: "WindSurp Agent",
+      title: "MindSurp Agent",
       description: "Talk to our AI and take a virtual quiz",
       icon: <FiBarChart2 className="text-indigo-400 text-3xl" />,
       path: "/agent"

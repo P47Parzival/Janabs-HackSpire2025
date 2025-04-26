@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { FiUpload, FiYoutube, FiMessageSquare, FiAlertCircle } from 'react-icons/fi';
 import { BsRobot } from 'react-icons/bs';
+import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -75,6 +77,9 @@ export default function ContentAnalysis() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (errorData.detail?.includes('Could not retrieve a transcript')) {
+          throw new Error('This video is either unavailable, private, age-restricted, or has no captions available. Please try a different video with available captions.');
+        }
         throw new Error(errorData.detail || 'Failed to process YouTube video');
       }
 
@@ -136,29 +141,58 @@ export default function ContentAnalysis() {
   };
 
   return (
-    <div className="min-h-screen bg-blue-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-blue-600 mb-8">Smart Content Analysis</h1>
-        
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex items-center">
-            <FiAlertCircle className="mr-2" />
-            {error}
+    <div className="min-h-screen bg-slate-900 flex flex-col p-8">
+      <motion.div 
+        className="max-w-7xl mx-auto w-full"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="flex items-center mb-8">
+          <div className="h-8 w-8 mr-3 relative">
+            <Image 
+              src="/favicon.ico" 
+              alt="MindSurf Logo" 
+              width={32} 
+              height={32} 
+              className="object-contain"
+            />
           </div>
-        )}
+          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">Smart Content Analysis</h1>
+        </div>
+        
+        <AnimatePresence>
+          {error && (
+            <motion.div 
+              className="bg-red-900/30 backdrop-blur-sm border border-red-500/50 text-red-200 px-6 py-4 rounded-xl mb-6 flex items-center shadow-lg"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <FiAlertCircle className="mr-3 text-xl text-red-400" />
+              <span>{error}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Side - Upload Section */}
-          <div className="bg-white rounded-xl p-6 shadow-lg">
-            <h2 className="text-xl font-semibold mb-6">Upload Your Content</h2>
+          <motion.div 
+            className="bg-slate-800/60 backdrop-blur-xl p-6 rounded-xl shadow-2xl border border-slate-700/50"
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <h2 className="text-2xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400 mb-6">Upload Your Content</h2>
             
             {/* File Upload Section */}
-            <div className="mb-8">
+            <div className="mb-8 group">
               <div className="flex items-center mb-4">
-                <FiUpload className="text-blue-500 text-xl mr-2" />
-                <h3 className="text-lg font-medium">Upload PDF or Document</h3>
+                <FiUpload className="text-indigo-400 text-xl mr-2" />
+                <h3 className="text-lg font-medium text-slate-200">Upload PDF or Document</h3>
               </div>
-              <div className="border-2 border-dashed border-blue-200 rounded-lg p-6 text-center">
+              <div className="border-2 border-dashed border-slate-700/70 hover:border-indigo-500/50 rounded-xl p-8 text-center transition-colors duration-300 group-hover:bg-slate-800/30">
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx,.txt"
@@ -171,34 +205,46 @@ export default function ContentAnalysis() {
                   htmlFor="file-upload"
                   className={`cursor-pointer block ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <div className="text-blue-500 mb-2">
-                    <FiUpload className="text-3xl mx-auto" />
-                  </div>
-                  <p className="text-gray-600">
+                  <motion.div 
+                    className="text-indigo-400 mb-3"
+                    whileHover={{ scale: 1.1 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                  >
+                    <FiUpload className="text-4xl mx-auto" />
+                  </motion.div>
+                  <p className="text-slate-400 group-hover:text-slate-300 transition-colors">
                     {selectedFile ? selectedFile.name : 'Drag and drop your file here or click to browse'}
                   </p>
                 </label>
               </div>
               {isProcessing && (
-                <div className="mt-4">
-                  <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div 
-                      className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
+                <motion.div 
+                  className="mt-4"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <div className="w-full bg-slate-700/50 rounded-full h-2.5">
+                    <motion.div 
+                      className="bg-gradient-to-r from-indigo-600 to-blue-600 h-2.5 rounded-full"
                       style={{ width: `${uploadProgress}%` }}
-                    ></div>
+                      initial={{ width: '0%' }}
+                      animate={{ width: `${uploadProgress}%` }}
+                      transition={{ duration: 0.5 }}
+                    />
                   </div>
-                  <p className="text-center text-blue-600 mt-2">
+                  <p className="text-center text-indigo-400 mt-2">
                     Processing document... {uploadProgress}%
                   </p>
-                </div>
+                </motion.div>
               )}
             </div>
 
             {/* YouTube URL Section */}
             <div>
               <div className="flex items-center mb-4">
-                <FiYoutube className="text-red-500 text-xl mr-2" />
-                <h3 className="text-lg font-medium">YouTube Video Analysis</h3>
+                <FiYoutube className="text-red-400 text-xl mr-2" />
+                <h3 className="text-lg font-medium text-slate-200">YouTube Video Analysis</h3>
               </div>
               <form onSubmit={handleYoutubeSubmit} className="flex gap-2">
                 <input
@@ -206,62 +252,82 @@ export default function ContentAnalysis() {
                   placeholder="Enter YouTube URL"
                   value={youtubeUrl}
                   onChange={(e) => setYoutubeUrl(e.target.value)}
-                  className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 p-3 border border-slate-700 bg-slate-800/80 text-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner"
                   disabled={isProcessing}
                 />
-                <button
+                <motion.button
                   type="submit"
-                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-gradient-to-r from-red-600 to-red-500 text-white px-5 py-3 rounded-lg hover:shadow-lg hover:shadow-red-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isProcessing || !youtubeUrl.trim()}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   Analyze
-                </button>
+                </motion.button>
               </form>
             </div>
-          </div>
+          </motion.div>
 
           {/* Right Side - Chat Interface */}
-          <div className="bg-white rounded-xl p-6 shadow-lg">
+          <motion.div 
+            className="bg-slate-800/60 backdrop-blur-xl p-6 rounded-xl shadow-2xl border border-slate-700/50"
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
             <div className="flex items-center mb-6">
-              <BsRobot className="text-blue-500 text-xl mr-2" />
-              <h2 className="text-xl font-semibold">AI Assistant</h2>
+              <BsRobot className="text-indigo-400 text-xl mr-2" />
+              <h2 className="text-2xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">AI Assistant</h2>
             </div>
             
             {/* Chat Messages */}
-            <div className="h-[400px] overflow-y-auto mb-4 space-y-4">
+            <div className="h-[400px] overflow-y-auto mb-6 space-y-4 pr-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
               {messages.length === 0 ? (
-                <div className="text-center text-gray-500 mt-20">
-                  <FiMessageSquare className="text-4xl mx-auto mb-4" />
-                  <p>Upload a document or enter a YouTube URL to start asking questions</p>
-                </div>
+                <motion.div 
+                  className="text-center text-slate-500 mt-20"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5, duration: 0.5 }}
+                >
+                  <FiMessageSquare className="text-5xl mx-auto mb-4 text-indigo-400/60" />
+                  <p className="text-slate-400">Upload a document or enter a YouTube URL to start asking questions</p>
+                </motion.div>
               ) : (
                 messages.map((message, index) => (
-                  <div
+                  <motion.div
                     key={index}
                     className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
                   >
                     <div
-                      className={`max-w-[80%] p-3 rounded-lg ${
+                      className={`max-w-[80%] p-4 rounded-xl shadow-lg ${
                         message.isUser
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-blue-100 text-gray-800'
+                          ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white'
+                          : 'bg-slate-700/50 text-slate-200 border border-slate-600/30'
                       }`}
                     >
                       {message.text}
                     </div>
-                  </div>
+                  </motion.div>
                 ))
               )}
               {isProcessing && (
-                <div className="flex justify-start">
-                  <div className="bg-blue-100 text-gray-800 p-3 rounded-lg max-w-[80%]">
+                <motion.div 
+                  className="flex justify-start"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="bg-slate-700/50 text-slate-200 p-4 rounded-xl shadow-lg border border-slate-600/30 max-w-[80%]">
                     <div className="flex space-x-2">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               )}
             </div>
 
@@ -272,20 +338,22 @@ export default function ContentAnalysis() {
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 placeholder="Ask about your content..."
-                className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 p-3 border border-slate-700 bg-slate-800/80 text-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner"
                 disabled={!conversationId || isProcessing}
               />
-              <button
+              <motion.button
                 type="submit"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-5 py-3 rounded-lg hover:shadow-lg hover:shadow-indigo-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={!conversationId || isProcessing || !inputMessage.trim()}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
                 Send
-              </button>
+              </motion.button>
             </form>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
-} 
+}
