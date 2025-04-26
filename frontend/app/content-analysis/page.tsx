@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { FiUpload, FiYoutube, FiMessageSquare, FiAlertCircle } from 'react-icons/fi';
 import { BsRobot } from 'react-icons/bs';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export default function ContentAnalysis() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [youtubeUrl, setYoutubeUrl] = useState('');
@@ -25,7 +27,7 @@ export default function ContentAnalysis() {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch('http://localhost:8000/upload', {
+        const response = await fetch(`${API_URL}/upload`, {
           method: 'POST',
           body: formData,
         });
@@ -61,7 +63,7 @@ export default function ContentAnalysis() {
     setUploadProgress(0);
 
     try {
-      const response = await fetch('http://localhost:8000/process-youtube', {
+      const response = await fetch(`${API_URL}/process-youtube`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -104,7 +106,7 @@ export default function ContentAnalysis() {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:8000/chat', {
+      const response = await fetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
