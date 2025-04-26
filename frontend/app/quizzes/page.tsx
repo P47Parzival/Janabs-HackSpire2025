@@ -19,13 +19,6 @@ import { FiBook, FiBarChart2, FiMessageSquare } from "react-icons/fi";
 import { RadioGroup, RadioGroupItem } from "@/app/components/ui/radio-group";
 import { Label } from "@/app/components/ui/label";
 
-interface Module {
-  topic: string;
-  description: string;
-  resources: string[];
-  quizQuestions: string[];
-}
-
 interface QuizQuestion {
   id: string;
   question: string;
@@ -268,7 +261,6 @@ export default function AdaptiveLearningAssistant() {
   };
 
   const currentQuestion = activeQuiz?.questions[activeQuiz.currentQuestionIndex];
-  const hasAnswered = activeQuiz?.answers[activeQuiz.currentQuestionIndex] !== undefined;
 
   return (
     <div className="min-h-screen bg-slate-900/80 p-8">
