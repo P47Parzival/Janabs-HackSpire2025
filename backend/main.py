@@ -316,24 +316,59 @@ async def analyze_learning(request: LearningAnalysisRequest):
                 }}
             ]
         }}
+
+        Ensure the response is a valid JSON object with all required fields.
         """
 
-        # Get response from the LLM
-        model = genai.GenerativeModel('gemini-1.5-pro')
-        response = model.generate_content(prompt)
-        
-        # Parse the response and return the structured data
+        # Get response from the LLM with retry logic
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_exponential(multiplier=1, min=4, max=10),
+            reraise=True
+        )
+        def generate_learning_content():
+            model = genai.GenerativeModel('gemini-1.5-pro')
+            response = model.generate_content(prompt)
+            if not response or not response.text:
+                raise ValueError("Empty response from LLM")
+            return response.text
+
         try:
-            data = json.loads(response.text)
+            response_text = generate_learning_content()
+            data = json.loads(response_text)
+            
+            # Validate the response structure
+            if not all(key in data for key in ["learning_paths", "quizzes", "summaries"]):
+                raise ValueError("Invalid response structure")
+
+            # Add IDs and dates if missing
+            for path in data["learning_paths"]:
+                if "id" not in path:
+                    path["id"] = str(uuid.uuid4())
+            
+            for quiz in data["quizzes"]:
+                if "id" not in quiz:
+                    quiz["id"] = str(uuid.uuid4())
+                if "completed" not in quiz:
+                    quiz["completed"] = False
+            
+            for summary in data["summaries"]:
+                if "id" not in summary:
+                    summary["id"] = str(uuid.uuid4())
+                if "date" not in summary:
+                    summary["date"] = datetime.now().strftime("%Y-%m-%d")
+
             return LearningAnalysisResponse(**data)
-        except json.JSONDecodeError:
-            # If the response isn't valid JSON, create a default response
+
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error: {e}. Response text: {response_text}")
+            # Return a default response with an error message
             return LearningAnalysisResponse(
                 learning_paths=[
                     LearningPath(
                         id=str(uuid.uuid4()),
-                        title="Introduction to Topic",
-                        description="A comprehensive learning path to get you started",
+                        title="Error Processing Request",
+                        description="We encountered an error while processing your request. Here's a basic learning path to get you started.",
                         difficulty="beginner",
                         progress=0,
                         topics=["Basics", "Fundamentals"]
@@ -353,14 +388,29 @@ async def analyze_learning(request: LearningAnalysisRequest):
                     Summary(
                         id=str(uuid.uuid4()),
                         topic="Key Concepts",
-                        content="Here are the main concepts you'll need to understand...",
+                        content="We're having trouble generating personalized content. Please try again with more specific learning goals.",
                         date=datetime.now().strftime("%Y-%m-%d")
                     )
                 ]
             )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Error in analyze_learning: {str(e)}")
+        if "timeout" in str(e).lower():
+            raise HTTPException(
+                status_code=504,
+                detail="The operation timed out. Please try again in a few moments."
+            )
+        elif "failed to connect" in str(e).lower():
+            raise HTTPException(
+                status_code=503,
+                detail="Unable to connect to the AI service. Please try again later."
+            )
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error analyzing learning input: {str(e)}"
+            )
 
 if __name__ == "__main__":
     import uvicorn
