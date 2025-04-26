@@ -12,22 +12,26 @@ export default function HomePage() {
     {
       title: "AI Study Companion",
       description: "Your personalized learning assistant powered by advanced AI to help you understand complex topics",
-      icon: <BsRobot className="text-blue-500 text-3xl" />
+      icon: <BsRobot className="text-blue-500 text-3xl" />,
+      path: "/ai-companion"
     },
     {
       title: "Smart Content Analysis",
       description: "Upload any textbook content or YouTube videos and get simplified explanations instantly",
-      icon: <FiFileText className="text-blue-500 text-3xl" />
+      icon: <FiFileText className="text-blue-500 text-3xl" />,
+      path: "/content-analysis"
     },
     {
       title: "Interactive Quizzes",
       description: "Customized assessments that adapt to your learning pace with instant feedback",
-      icon: <MdQuiz className="text-blue-500 text-3xl" />
+      icon: <MdQuiz className="text-blue-500 text-3xl" />,
+      path: "/quizzes"
     },
     {
       title: "Progress Tracking",
       description: "Visual insights into your learning journey with personalized improvement recommendations",
-      icon: <FiBarChart2 className="text-blue-500 text-3xl" />
+      icon: <FiBarChart2 className="text-blue-500 text-3xl" />,
+      path: "/progress"
     }
   ];
 
@@ -170,11 +174,15 @@ export default function HomePage() {
           </p>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {mainFeatures.map((feature, index) => (
-              <div key={index} className="bg-blue-50 p-6 rounded-xl hover:shadow-lg transition group hover:bg-blue-100">
+              <a 
+                key={index} 
+                href={feature.path}
+                className="bg-blue-50 p-6 rounded-xl hover:shadow-lg transition group hover:bg-blue-100 cursor-pointer block"
+              >
                 <div className="mb-4 transform group-hover:scale-110 transition-transform">{feature.icon}</div>
                 <h3 className="text-xl font-semibold mb-2 text-gray-800">{feature.title}</h3>
                 <p className="text-gray-600">{feature.description}</p>
-              </div>
+              </a>
             ))}
           </div>
         </div>
