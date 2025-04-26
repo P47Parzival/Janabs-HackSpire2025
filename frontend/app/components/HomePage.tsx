@@ -337,7 +337,7 @@ export default function HomePage() {
         'Adaptive learning paths',
         'Concept revisitation for difficult topics'
       ],
-      image: '/personalized-learning.jpg' // Updated to use your image
+      image: '/personalisedimage.jpg' // Updated to use your image
     },
     {
       id: 'explain',
@@ -349,7 +349,7 @@ export default function HomePage() {
         'Step-by-step breakdowns',
         'Student-friendly language'
       ],
-      image: '/personalized-learning.jpg' // Updated to use your image
+      image: '/personalisedimage2.jpg' // Updated to use your image
     },
     {
       id: 'chat',
@@ -361,7 +361,7 @@ export default function HomePage() {
         '24/7 learning support',
         'Conceptual clarifications'
       ],
-      image: '/personalized-learning.jpg' // Updated to use your image
+      image: '/personalisedimage3.jpg' // Updated to use your image
     },
     {
       id: 'quiz',
@@ -373,7 +373,7 @@ export default function HomePage() {
         'Targeted resource suggestions',
         'Comprehensive review materials'
       ],
-      image: '/personalized-learning.jpg' // Updated to use your image
+      image: '/personalisedimage.jpg' // Updated to use your image
     }
   ];
 

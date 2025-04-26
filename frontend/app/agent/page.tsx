@@ -86,7 +86,7 @@ export default function AgentPage() {
           className="text-center mb-12"
         >
           <BsRobot className="text-6xl text-indigo-400 mx-auto mb-4" />
-          <h1 className="text-4xl font-bold mb-4">Windsurf Agent</h1>
+          <h1 className="text-4xl font-bold mb-4">Mindsurf Agent</h1>
           <p className="text-xl text-slate-300">
             Your AI-powered learning companion is ready to help you understand complex topics
           </p>
