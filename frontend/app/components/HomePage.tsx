@@ -324,10 +324,10 @@ export default function HomePage() {
       path: "/quizzes"
     },
     {
-      title: "Progress Tracking",
-      description: "Visual insights into your learning journey with personalized improvement recommendations",
+      title: "WindSurp Agent",
+      description: "Talk to our AI and take a virtual quiz",
       icon: <FiBarChart2 className="text-indigo-400 text-3xl" />,
-      path: "/progress"
+      path: "/agent"
     }
   ];
 
