@@ -1,29 +1,111 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { FiMenu, FiX, FiBarChart2, FiFileText } from 'react-icons/fi';
-import { MdQuiz } from 'react-icons/md';
-import { BsRobot } from 'react-icons/bs';
-import { motion, AnimatePresence } from 'framer-motion';
+import { FiMenu, FiX, FiBook, FiUser, FiBarChart2, FiMessageCircle, FiFileText, FiAward } from 'react-icons/fi';
+import { MdQuiz, MdOndemandVideo } from 'react-icons/md';
+import { BsRobot, BsLightbulb } from 'react-icons/bs';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { useInView } from 'react-intersection-observer';
 import Image from 'next/image';
+
+interface RevealTextProps {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+}
+
+interface FloatingCardProps {
+  children: React.ReactNode;
+  delay?: number;
+}
+
+interface ParallaxSectionProps {
+  children: React.ReactNode;
+  className?: string;
+  factor?: number;
+}
 
 export default function HomePage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('learn');
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  const RevealText = ({ children, delay = 0, className = '' }: RevealTextProps) => {
+    const ref = useRef<HTMLDivElement>(null);
+    const isInView = useInView(ref, { once: true });
+    
+    return (
+      <div
+        ref={ref}
+        className={className}
+        style={{
+          transform: isInView ? "none" : "translateY(40px)",
+          opacity: isInView ? 1 : 0,
+          transition: `all 0.9s cubic-bezier(0.17, 0.55, 0.55, 1) ${delay}s`,
+        }}
+      >
+        {children}
+      </div>
+    );
+  };
+
+  const FloatingCard = ({ children, delay = 0 }: FloatingCardProps) => {
+    const ref = useRef<HTMLDivElement>(null);
+    const isInView = useInView(ref, { once: true });
+    
+    return (
+      <div
+        ref={ref}
+        style={{
+          transform: isInView
+            ? "translateY(0px)"
+            : "translateY(50px)",
+          opacity: isInView ? 1 : 0,
+          transition: `all 0.9s cubic-bezier(0.17, 0.55, 0.55, 1) ${delay}s`,
+        }}
+        className="relative"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-xl blur-xl" 
+          style={{
+            opacity: isInView ? 0.5 : 0,
+            transform: isInView ? "translateY(10px)" : "translateY(0px)",
+            transition: `all 1.2s cubic-bezier(0.17, 0.55, 0.55, 1) ${delay}s`,
+          }}
+        ></div>
+        {children}
+      </div>
+    );
+  };
+
+  const ParallaxSection = ({ children, className = '', factor = 0.2 }: ParallaxSectionProps) => {
+    const ref = useRef<HTMLDivElement>(null);
+    const { scrollYProgress } = useScroll({
+      target: ref,
+      offset: ["start end", "end start"]
+    });
+    
+    const y = useTransform(scrollYProgress, [0, 1], [0, -100 * factor]);
+    
+    return (
+      <motion.div 
+        ref={ref}
+        style={{ y }} 
+        className={className}
+      >
+        {children}
+      </motion.div>
+    );
+  };
+
   useEffect(() => {
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', (e: Event) => {
+      anchor.addEventListener('click', function (e) {
         e.preventDefault();
-        const href = (anchor as HTMLAnchorElement).getAttribute('href');
-        if (href) {
-          const target = document.querySelector(href);
-          if (target instanceof HTMLElement) {
-            window.scrollTo({
-              top: target.offsetTop - 80, // Offset for navbar
-              behavior: 'smooth'
-            });
-          }
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          window.scrollTo({
+            top: target.offsetTop - 80, // Offset for navbar
+            behavior: 'smooth'
+          });
         }
       });
     });
@@ -58,7 +140,7 @@ export default function HomePage() {
       color: string;
     }
     
-    // Create a more visually interesting star system
+    // Updated star system interface
     interface Star {
       x: number;
       y: number;
@@ -69,6 +151,8 @@ export default function HomePage() {
       twinkleSpeed: number;
       twinklePhase: number;
       color: string;
+      isFalling: boolean;
+      fallSpeed: number;
     }
     
     const stars: Star[] = [];
@@ -83,13 +167,15 @@ export default function HomePage() {
         stars.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          size: Math.random() * 1.2 + 0.5, // Small size
-          opacity: 0.4 + Math.random() * 0.3, // Medium opacity
-          speedX: (Math.random() - 0.5) * 0.05, // Very slow movement
-          speedY: (Math.random() - 0.5) * 0.05,
-          twinkleSpeed: 0.01 + Math.random() * 0.02,
+          size: Math.random() * 0.8 + 0.3, // Smaller size range
+          opacity: 0.3 + Math.random() * 0.2, // Reduced opacity for less brightness
+          speedX: (Math.random() - 0.5) * 0.001, // Almost no horizontal movement
+          speedY: (Math.random() - 0.5) * 0.001, // Almost no vertical movement
+          twinkleSpeed: 0.003 + Math.random() * 0.007, // Slower twinkling
           twinklePhase: Math.random() * Math.PI * 2,
-          color: '#ffffff' // White stars
+          color: '#ffffff', // White stars
+          isFalling: false,
+          fallSpeed: 0
         });
       }
       
@@ -105,28 +191,32 @@ export default function HomePage() {
         stars.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          size: Math.random() * 1.5 + 1.2, // Medium size
-          opacity: 0.5 + Math.random() * 0.4,
-          speedX: (Math.random() - 0.5) * 0.03,
-          speedY: (Math.random() - 0.5) * 0.03,
-          twinkleSpeed: 0.015 + Math.random() * 0.025,
+          size: Math.random() * 1.0 + 0.7, // Adjusted medium size
+          opacity: 0.4 + Math.random() * 0.2, // Lower opacity for less brightness
+          speedX: (Math.random() - 0.5) * 0.001, // Almost no horizontal movement
+          speedY: (Math.random() - 0.5) * 0.001, // Almost no vertical movement
+          twinkleSpeed: 0.005 + Math.random() * 0.01, // Slower twinkling
           twinklePhase: Math.random() * Math.PI * 2,
-          color
+          color,
+          isFalling: false,
+          fallSpeed: 0
         });
       }
       
-      // Create a few bright stars (less numerous)
-      for (let i = 0; i < 20; i++) {
+      // Create a few bright stars (less numerous and less bright)
+      for (let i = 0; i < 15; i++) { // Reduced from 20 to 15
         stars.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          size: Math.random() * 2 + 1.8, // Larger size
-          opacity: 0.7 + Math.random() * 0.3, // Higher opacity
-          speedX: (Math.random() - 0.5) * 0.01, // Almost still
-          speedY: (Math.random() - 0.5) * 0.01,
-          twinkleSpeed: 0.02 + Math.random() * 0.03, // More pronounced twinkling
+          size: Math.random() * 1.3 + 1.0, // Slightly smaller size
+          opacity: 0.4 + Math.random() * 0.2, // Lower max opacity
+          speedX: (Math.random() - 0.5) * 0.001, // Almost no horizontal movement
+          speedY: (Math.random() - 0.5) * 0.001, // Almost no vertical movement
+          twinkleSpeed: 0.008 + Math.random() * 0.015, // Slower twinkling
           twinklePhase: Math.random() * Math.PI * 2,
-          color: '#ffffff' // White color
+          color: '#ffffff', // White color
+          isFalling: false,
+          fallSpeed: 0
         });
       }
     };
@@ -145,7 +235,10 @@ export default function HomePage() {
       });
     }
     
+    let time = 0;
     const drawBackground = () => {
+      time += 0.005;
+      
       // Dark gradient background
       const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
       gradient.addColorStop(0, '#0f172a'); // Dark blue
@@ -153,24 +246,35 @@ export default function HomePage() {
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      // Add subtle grid pattern
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.025)';
+      // Add subtle grid pattern with pulsing effect
+      const gridOpacity = 0.02 + Math.abs(Math.sin(time * 0.5) * 0.015); // Pulsing opacity
+      ctx.strokeStyle = `rgba(255, 255, 255, ${gridOpacity})`;
       ctx.lineWidth = 1;
-      
+
+      // Staggered grid lines for more depth
       const gridSize = 30;
+      const majorGridInterval = 4; // Every 4th line is brighter
+
       for (let x = 0; x < canvas.width; x += gridSize) {
+        const isMajorGrid = Math.floor(x / gridSize) % majorGridInterval === 0;
+        ctx.globalAlpha = isMajorGrid ? gridOpacity * 1.5 : gridOpacity;
         ctx.beginPath();
         ctx.moveTo(x, 0);
         ctx.lineTo(x, canvas.height);
         ctx.stroke();
       }
-      
+
       for (let y = 0; y < canvas.height; y += gridSize) {
+        const isMajorGrid = Math.floor(y / gridSize) % majorGridInterval === 0;
+        ctx.globalAlpha = isMajorGrid ? gridOpacity * 1.5 : gridOpacity;
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(canvas.width, y);
         ctx.stroke();
       }
+
+      // Reset global alpha
+      ctx.globalAlpha = 1.0;
       
       // Draw and update stars with advanced effects
       stars.forEach(star => {
@@ -198,37 +302,48 @@ export default function HomePage() {
         ctx.arc(star.x, star.y, currentSize, 0, Math.PI * 2);
         ctx.fill();
         
-        // Add glow effect for larger stars
+        // Add glow effect for larger stars - with reduced intensity
         if (star.size > 1.5) {
-          // Inner glow
+          // Inner glow - reduced opacity and size
           const gradient = ctx.createRadialGradient(
             star.x, star.y, 0,
-            star.x, star.y, star.size * 3
+            star.x, star.y, star.size * 4 // Reduced from star.size * 5
           );
-          gradient.addColorStop(0, `rgba(255, 255, 255, ${0.15 * currentOpacity})`);
+          gradient.addColorStop(0, `rgba(255, 255, 255, ${0.12 * currentOpacity})`); // Reduced from 0.20
           gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
           
           ctx.fillStyle = gradient;
           ctx.beginPath();
-          ctx.arc(star.x, star.y, star.size * 3, 0, Math.PI * 2);
+          ctx.arc(star.x, star.y, star.size * 4, 0, Math.PI * 2); // Reduced from star.size * 5
           ctx.fill();
           
-          // Create subtle cross rays for the brightest stars
+          // Cross rays for brighter stars - with reduced intensity
           if (star.size > 2) {
-            ctx.globalAlpha = 0.1 * currentOpacity;
+            ctx.globalAlpha = 0.08 * currentOpacity; // Reduced from 0.15
             ctx.strokeStyle = star.color;
-            ctx.lineWidth = 0.5;
+            ctx.lineWidth = 0.4; // Reduced from 0.6
             
-            // Horizontal ray
+            // Horizontal ray - shorter
             ctx.beginPath();
-            ctx.moveTo(star.x - star.size * 4, star.y);
-            ctx.lineTo(star.x + star.size * 4, star.y);
+            ctx.moveTo(star.x - star.size * 4, star.y); // Reduced from star.size * 6
+            ctx.lineTo(star.x + star.size * 4, star.y); // Reduced from star.size * 6
             ctx.stroke();
             
-            // Vertical ray
+            // Vertical ray - shorter
             ctx.beginPath();
-            ctx.moveTo(star.x, star.y - star.size * 4);
-            ctx.lineTo(star.x, star.y + star.size * 4);
+            ctx.moveTo(star.x, star.y - star.size * 4); // Reduced from star.size * 6
+            ctx.lineTo(star.x, star.y + star.size * 4); // Reduced from star.size * 6
+            ctx.stroke();
+            
+            // Add diagonal rays for even more visual effect - shorter and less visible
+            ctx.beginPath();
+            ctx.moveTo(star.x - star.size * 2, star.y - star.size * 2); // Reduced from star.size * 3
+            ctx.lineTo(star.x + star.size * 2, star.y + star.size * 2); // Reduced from star.size * 3
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(star.x - star.size * 2, star.y + star.size * 2); // Reduced from star.size * 3
+            ctx.lineTo(star.x + star.size * 2, star.y - star.size * 2); // Reduced from star.size * 3
             ctx.stroke();
           }
         }
@@ -237,50 +352,118 @@ export default function HomePage() {
         ctx.globalAlpha = 1.0;
       });
       
-      // Occasionally create a shooting star
-      if (Math.random() > 0.995) { // Approx once every few seconds
+      // Enhance shooting stars
+      // More frequent and visually appealing shooting stars with color variations
+      if (Math.random() > 0.993) { // Make them more frequent
         const startX = Math.random() * canvas.width;
         const startY = Math.random() * (canvas.height / 3); // Start from top third
         
-        const length = 50 + Math.random() * 100;
+        const length = 150 + Math.random() * 250; // Longer trail for better visibility
         const angle = Math.PI / 4 + Math.random() * Math.PI / 2; // Down and to the right/left
         
         const endX = startX + length * Math.cos(angle);
         const endY = startY + length * Math.sin(angle);
         
-        // Draw shooting star with glow
-        const gradient = ctx.createLinearGradient(startX, startY, endX, endY);
-        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        // Random color for some shooting stars - occasionally colored
+        const colorChoice = Math.random();
+        const starColor = colorChoice > 0.7 ? 
+          'rgba(255, 255, 255, ' : 
+          colorChoice > 0.5 ? 
+          'rgba(135, 206, 250, ' : // Light blue
+          colorChoice > 0.3 ? 
+          'rgba(255, 182, 193, ' : // Light pink
+          'rgba(240, 230, 140, '; // Light yellow
         
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = 2;
+        // Enhanced shooting star with more vibrant glow
+        const shootingStarGradient = ctx.createLinearGradient(startX, startY, endX, endY);
+        shootingStarGradient.addColorStop(0, starColor + '0.0)');
+        shootingStarGradient.addColorStop(0.1, starColor + '0.4)');
+        shootingStarGradient.addColorStop(0.4, starColor + '0.8)');
+        shootingStarGradient.addColorStop(1.0, starColor + '0.0)');
+        
+        ctx.strokeStyle = shootingStarGradient;
+        ctx.lineWidth = 3; // Slightly thicker line
         ctx.beginPath();
         ctx.moveTo(startX, startY);
         ctx.lineTo(endX, endY);
         ctx.stroke();
+        
+        // Add a more pronounced glow around the shooting star
+        ctx.strokeStyle = starColor + '0.1)';
+        ctx.lineWidth = 9;
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+        
+        // Add pulse effect at the front of the shooting star
+        ctx.fillStyle = starColor + '0.9)';
+        ctx.beginPath();
+        ctx.arc(startX, startY, 1.5 + Math.sin(time * 10) * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Add small particles behind the shooting star with varying sizes
+        const particleCount = Math.floor(6 + Math.random() * 6);
+        for (let i = 0; i < particleCount; i++) {
+          const t = Math.random();
+          const particleX = startX + (endX - startX) * t;
+          const particleY = startY + (endY - startY) * t;
+          const particleSize = 0.8 + Math.random() * 1.2;
+          
+          ctx.fillStyle = starColor + (0.5 + Math.random() * 0.4) + ')';
+          ctx.beginPath();
+          ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
       
-      // Draw and update circles
+      // Add some slowly falling stars
+      // Make a small percentage of stars fall slowly
+      stars.forEach(star => {
+        // Small chance to start falling if not already falling
+        if (!star.isFalling && Math.random() > 0.9997) {
+          star.isFalling = true;
+          star.fallSpeed = 0.3 + Math.random() * 0.7;
+        }
+        
+        // Update position for falling stars
+        if (star.isFalling) {
+          star.y += star.fallSpeed;
+          
+          // Create a small trail effect for falling stars
+          ctx.globalAlpha = 0.2 * star.opacity;
+          ctx.strokeStyle = star.color;
+          ctx.lineWidth = 0.5;
+          ctx.beginPath();
+          ctx.moveTo(star.x, star.y - 5);
+          ctx.lineTo(star.x, star.y);
+          ctx.stroke();
+          
+          // Reset if it goes offscreen
+          if (star.y > canvas.height) {
+            star.y = 0;
+            star.x = Math.random() * canvas.width;
+            star.isFalling = false;
+          }
+        }
+      });
+
+      // Update circle positions
       circles.forEach(circle => {
         circle.x += circle.vx;
         circle.y += circle.vy;
         
-        // Bounce off edges
-        if (circle.x - circle.radius < 0 || circle.x + circle.radius > canvas.width) {
-          circle.vx *= -1;
-        }
-        if (circle.y - circle.radius < 0 || circle.y + circle.radius > canvas.height) {
-          circle.vy *= -1;
-        }
+        // Bounce off walls
+        if (circle.x < -circle.radius) circle.x = canvas.width + circle.radius;
+        if (circle.x > canvas.width + circle.radius) circle.x = -circle.radius;
+        if (circle.y < -circle.radius) circle.y = canvas.height + circle.radius;
+        if (circle.y > canvas.height + circle.radius) circle.y = -circle.radius;
         
-        // Draw circle with gradient
-        const gradient = ctx.createRadialGradient(
-          circle.x, circle.y, 0,
-          circle.x, circle.y, circle.radius
-        );
-        gradient.addColorStop(0, `${circle.color}40`); // 25% opacity
-        gradient.addColorStop(1, `${circle.color}00`); // 0% opacity
+        // Draw gradient circle with glow effect
+        const gradient = ctx.createRadialGradient(circle.x, circle.y, 0, circle.x, circle.y, circle.radius);
+        gradient.addColorStop(0, circle.color + '40'); // 25% opacity
+        gradient.addColorStop(0.8, circle.color + '10'); // 6% opacity
+        gradient.addColorStop(1, circle.color + '00'); // 0% opacity
         
         ctx.fillStyle = gradient;
         ctx.beginPath();
@@ -293,9 +476,18 @@ export default function HomePage() {
     
     drawBackground();
     
+    // Handle window resize by recreating the stars
+    const handleResize = () => {
+      resizeCanvas();
+      createStars();
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
     return () => {
-      cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(animationFrameId);
     };
   }, []);
 
@@ -337,7 +529,7 @@ export default function HomePage() {
         'Adaptive learning paths',
         'Concept revisitation for difficult topics'
       ],
-      image: '/personalisedimage.jpg' // Updated to use your image
+      image: '/personalized-learning.jpg' // Updated to use your image
     },
     {
       id: 'explain',
@@ -349,7 +541,7 @@ export default function HomePage() {
         'Step-by-step breakdowns',
         'Student-friendly language'
       ],
-      image: '/personalisedimage2.jpg' // Updated to use your image
+      image: '/personalized-learning.jpg' // Updated to use your image
     },
     {
       id: 'chat',
@@ -361,7 +553,7 @@ export default function HomePage() {
         '24/7 learning support',
         'Conceptual clarifications'
       ],
-      image: '/personalisedimage3.jpg' // Updated to use your image
+      image: '/personalized-learning.jpg' // Updated to use your image
     },
     {
       id: 'quiz',
@@ -373,7 +565,7 @@ export default function HomePage() {
         'Targeted resource suggestions',
         'Comprehensive review materials'
       ],
-      image: '/personalisedimage.jpg' // Updated to use your image
+      image: '/personalized-learning.jpg' // Updated to use your image
     }
   ];
 
@@ -403,206 +595,54 @@ export default function HomePage() {
       {/* Content Layer */}
       <div className="relative z-10 flex flex-col min-h-screen">
         {/* Navigation */}
-        <nav className="backdrop-blur-xl bg-slate-900/80 shadow-md border-b border-slate-800/50 px-6 py-4 sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto flex justify-between items-center">
-            <motion.div 
-              className="flex items-center"
-              initial={{ x: -50, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              {/* Using favicon.ico instead of mindsurf-logo.png */}
-              <div className="h-8 w-8 mr-2 relative">
-                <Image 
-                  src="/favicon.ico" 
-                  alt="MindSurf Logo" 
-                  width={32} 
-                  height={32} 
-                  className="object-contain"
-                />
-              </div>
-              <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">MindSurf</h1>
-            </motion.div>
-            
-            <button 
-              className="md:hidden text-indigo-400 text-2xl"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              {isMenuOpen ? <FiX /> : <FiMenu />}
-            </button>
-            
-            <AnimatePresence>
-              {isMenuOpen && (
-                <motion.div 
-                  className="absolute top-16 left-0 right-0 bg-slate-900/95 backdrop-blur-xl shadow-xl border border-slate-800/50 p-4 md:hidden z-50"
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <ul className="space-y-4">
-                    <motion.li whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <a href="#features" className="block py-2 hover:text-indigo-400 text-slate-200 font-medium">Features</a>
-                    </motion.li>
-                    <motion.li whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <a href="#how-it-works" className="block py-2 hover:text-indigo-400 text-slate-200 font-medium">How It Works</a>
-                    </motion.li>
-                    <motion.li whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <a href="#testimonials" className="block py-2 hover:text-indigo-400 text-slate-200 font-medium">Testimonials</a>
-                    </motion.li>
-                    <motion.li whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <a href="#login" className="block py-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-4 py-2 rounded-full shadow-lg hover:shadow-indigo-500/20">Login</a>
-                    </motion.li>
-                    <motion.li whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <a href="#signup" className="block py-2 border-2 border-indigo-500 text-indigo-400 px-4 py-2 rounded-full hover:bg-indigo-950/50 transition">Sign Up</a>
-                    </motion.li>
-                  </ul>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            
-            <div className="hidden md:block">
-              <ul className="flex space-x-6 items-center">
-                {["Features", "How It Works", "Testimonials"].map((item, index) => (
-                  <motion.li 
-                    key={item}
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1, duration: 0.5 }}
-                    whileHover={{ scale: 1.1 }}
-                  >
-                    <a 
-                      href={`#${item.toLowerCase().replace(/\s+/g, '-')}`} 
-                      className="hover:text-indigo-400 text-slate-200 font-medium relative overflow-hidden group"
-                    >
-                      {item}
-                      <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-indigo-500 transition-all group-hover:w-full duration-300"></span>
-                    </a>
-                  </motion.li>
-                ))}
-                <motion.li 
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3, duration: 0.5 }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <a href="#login" className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-5 py-2 rounded-full shadow-lg hover:shadow-indigo-500/30 transition">Login</a>
-                </motion.li>
-                <motion.li 
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4, duration: 0.5 }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <a href="#signup" className="border-2 border-indigo-500 text-indigo-400 px-5 py-2 rounded-full hover:bg-indigo-950/50 transition">Sign Up</a>
-                </motion.li>
-              </ul>
-            </div>
-          </div>
-        </nav>
+        
 
         {/* Hero Section */}
-        <section className="px-6 py-16 md:py-28 relative">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center">
+        <ParallaxSection className="px-6 py-16 md:py-28 relative" factor={0.1}>
+          <div className="max-w-7xl mx-auto">
             <motion.div 
-              className="md:w-1/2 mb-8 md:mb-0 text-center md:text-left z-10"
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
+              className="text-center mx-auto max-w-3xl"
+              initial={{ opacity: 0, y: -30 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 drop-shadow-lg">
                 Your AI-Powered <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">Learning Companion</span>
               </h1>
-              <p className="text-xl text-slate-300 mb-8 drop-shadow">
+              <p className="text-xl text-slate-300 mb-10 drop-shadow">
                 Experience personalized education that adapts to your unique learning style and pace
               </p>
-              <div className="flex flex-col sm:flex-row justify-center md:justify-start space-y-4 sm:space-y-0 sm:space-x-4">
-                <motion.button 
-                  className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-8 py-3 rounded-full text-lg shadow-xl hover:shadow-indigo-500/30 transform transition duration-300"
-                  whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(99, 102, 241, 0.5)" }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Start Learning Now
-                </motion.button>
-                <motion.button 
-                  className="bg-slate-800/70 backdrop-blur-sm text-indigo-400 border-2 border-indigo-500 px-8 py-3 rounded-full text-lg hover:bg-slate-800/90 transition shadow-lg"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Watch Demo
-                </motion.button>
-              </div>
-            </motion.div>
-            <motion.div 
-              className="md:w-1/2"
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
-            >
-              <div className="relative">
-                <div className="bg-slate-800/70 backdrop-blur-xl p-6 rounded-xl border border-slate-700/50 shadow-2xl transform hover:scale-105 transition duration-500">
-                  {/* Replace with MindSurf image */}
-                  <div className="w-full h-[300px] flex items-center justify-center">
-                    <Image 
-                      src="/mindsurf.jpg" 
-                      alt="MindSurf AI Platform" 
-                      width={200} 
-                      height={200} 
-                      className="object-contain rounded-lg"
-                    />
-                  </div>
-                  <div className="absolute -bottom-4 -right-4 bg-indigo-900/80 p-4 rounded-lg shadow-lg border border-indigo-700/50 backdrop-blur-xl">
-                    <div className="flex items-center">
-                      <BsRobot className="text-indigo-400 text-2xl mr-2" />
-                      <p className="text-slate-200 font-medium">AI-powered learning</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </motion.div>
           </div>
-        </section>
+        </ParallaxSection>
 
-        {/* Main Features Grid */}
+        {/* Main Features Grid with scroll reveal */}
         <section id="features" className="px-6 py-16 bg-slate-900/60 backdrop-blur-xl border-y border-slate-800/50">
           <div className="max-w-7xl mx-auto">
-            <motion.h2 
-              className="text-3xl md:text-4xl font-bold text-center mb-4 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              Smart Learning Features
-            </motion.h2>
-            <motion.p 
-              className="text-xl text-slate-300 text-center mb-12 max-w-3xl mx-auto"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              Our AI-powered platform adapts to your needs, making learning more efficient and engaging
-            </motion.p>
+            <RevealText className="text-center">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">
+                Smart Learning Features
+              </h2>
+            </RevealText>
+            <RevealText delay={0.2} className="text-center">
+              <p className="text-xl text-slate-300 mb-12 max-w-3xl mx-auto">
+                Our AI-powered platform adapts to your needs, making learning more efficient and engaging
+              </p>
+            </RevealText>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
               {mainFeatures.map((feature, index) => (
-                <motion.a 
-                  key={index} 
-                  href={feature.path}
-                  className="bg-slate-800/50 backdrop-blur-lg border border-slate-700/50 p-6 rounded-xl hover:shadow-2xl hover:shadow-indigo-500/10 transition group cursor-pointer block relative overflow-hidden"
-                  initial={{ opacity: 0, y: 50 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  whileHover={{ y: -10 }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <div className="mb-4 transform group-hover:scale-110 transition-transform duration-300">{feature.icon}</div>
-                  <h3 className="text-xl font-semibold mb-2 text-slate-200">{feature.title}</h3>
-                  <p className="text-slate-400">{feature.description}</p>
-                </motion.a>
+                <FloatingCard key={index} delay={0.1 + index * 0.1}>
+                  <motion.a 
+                    href={feature.path}
+                    className="bg-slate-800/50 backdrop-blur-lg border border-slate-700/50 p-6 rounded-xl hover:shadow-2xl hover:shadow-indigo-500/10 transition group cursor-pointer block relative overflow-hidden"
+                    whileHover={{ y: -10 }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="mb-4 transform group-hover:scale-110 transition-transform duration-300">{feature.icon}</div>
+                    <h3 className="text-xl font-semibold mb-2 text-slate-200">{feature.title}</h3>
+                    <p className="text-slate-400">{feature.description}</p>
+                  </motion.a>
+                </FloatingCard>
               ))}
             </div>
           </div>
@@ -611,24 +651,16 @@ export default function HomePage() {
         {/* Detailed Features Tabs */}
         <section id="how-it-works" className="px-6 py-16 backdrop-blur-lg">
           <div className="max-w-7xl mx-auto">
-            <motion.h2 
-              className="text-3xl md:text-4xl font-bold text-center mb-4 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400 drop-shadow-lg"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              How MindSurf Works
-            </motion.h2>
-            <motion.p 
-              className="text-xl text-slate-300 text-center mb-12 max-w-3xl mx-auto"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              Our platform uses advanced AI to transform how you learn and understand complex topics
-            </motion.p>
+            <RevealText className="text-center">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400 drop-shadow-lg">
+                How MindSurf Works
+              </h2>
+            </RevealText>
+            <RevealText delay={0.2} className="text-center">
+              <p className="text-xl text-slate-300 mb-12 max-w-3xl mx-auto">
+                Our platform uses advanced AI to transform how you learn and understand complex topics
+              </p>
+            </RevealText>
             
             <div className="flex flex-wrap justify-center mb-8">
               {detailedFeatures.map((tab, index) => (
@@ -665,8 +697,12 @@ export default function HomePage() {
                   >
                     <div className="flex flex-col md:flex-row items-center">
                       <div className="md:w-1/2 mb-6 md:mb-0 md:pr-8">
-                        <h3 className="text-2xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">{tab.title}</h3>
-                        <p className="text-lg text-slate-300 mb-6">{tab.description}</p>
+                        <RevealText>
+                          <h3 className="text-2xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">{tab.title}</h3>
+                        </RevealText>
+                        <RevealText delay={0.1}>
+                          <p className="text-lg text-slate-300 mb-6">{tab.description}</p>
+                        </RevealText>
                         <ul className="space-y-3">
                           {tab.features.map((feature, i) => (
                             <motion.li 
@@ -686,16 +722,11 @@ export default function HomePage() {
                           ))}
                         </ul>
                       </div>
-                      <motion.div 
-                        className="md:w-1/2"
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.5, delay: 0.3 }}
-                      >
+                      <FloatingCard delay={0.3}>
                         <div className="border border-slate-700/50 rounded-lg overflow-hidden shadow-xl hover:shadow-indigo-500/10 transition duration-300">
                           <img src={tab.image} alt={tab.title} className="rounded-lg transform hover:scale-105 transition duration-500" />
                         </div>
-                      </motion.div>
+                      </FloatingCard>
                     </div>
                   </motion.div>
                 )
