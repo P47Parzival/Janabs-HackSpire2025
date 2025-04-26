@@ -335,7 +335,9 @@ async def analyze_learning(request: LearningAnalysisRequest):
 
         try:
             response_text = generate_learning_content()
-            data = json.loads(response_text)
+            # Remove any markdown code block markers
+            clean_response = response_text.replace('```json', '').replace('```', '').strip()
+            data = json.loads(clean_response)
             
             # Validate the response structure
             if not all(key in data for key in ["learning_paths", "quizzes", "summaries"]):
@@ -362,36 +364,9 @@ async def analyze_learning(request: LearningAnalysisRequest):
 
         except json.JSONDecodeError as e:
             print(f"JSON decode error: {e}. Response text: {response_text}")
-            # Return a default response with an error message
-            return LearningAnalysisResponse(
-                learning_paths=[
-                    LearningPath(
-                        id=str(uuid.uuid4()),
-                        title="Error Processing Request",
-                        description="We encountered an error while processing your request. Here's a basic learning path to get you started.",
-                        difficulty="beginner",
-                        progress=0,
-                        topics=["Basics", "Fundamentals"]
-                    )
-                ],
-                quizzes=[
-                    Quiz(
-                        id=str(uuid.uuid4()),
-                        title="Basic Concepts Quiz",
-                        topic="Introduction",
-                        difficulty="easy",
-                        questions=5,
-                        completed=False
-                    )
-                ],
-                summaries=[
-                    Summary(
-                        id=str(uuid.uuid4()),
-                        topic="Key Concepts",
-                        content="We're having trouble generating personalized content. Please try again with more specific learning goals.",
-                        date=datetime.now().strftime("%Y-%m-%d")
-                    )
-                ]
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to parse LLM response. Please try again."
             )
 
     except Exception as e:
