@@ -5,6 +5,7 @@ import { BsRobot, BsLightbulb, BsMicFill, BsCalendar3, BsPersonCheck } from 'rea
 import { MdQuiz, MdOutlineInsights, MdRecommend, MdPsychology, MdAutoGraph } from 'react-icons/md';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
@@ -19,6 +20,7 @@ import { Label } from "@/app/components/ui/label";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import Chatbot from '@/app/components/chatbot';
+import { toast } from "@/app/hooks/use-toast";
 
 interface LearningPath {
   id: string;
@@ -51,6 +53,7 @@ interface StudySession {
   date: Date;
   duration: number;
   completed: boolean;
+  priority?: 'low' | 'medium' | 'high';
 }
 
 interface LearningStyle {
@@ -101,38 +104,87 @@ export default function AICompanion() {
       kinesthetic: 50
     }
   });
+  const [taskDuration, setTaskDuration] = useState<number>(60);
+  const [taskPriority, setTaskPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    setStudySessions([
+    const savedSessions = localStorage.getItem('studySessions');
+    
+    if (savedSessions) {
+      try {
+        const parsedSessions = JSON.parse(savedSessions).map((session: any) => ({
+          ...session,
+          date: new Date(session.date)
+        }));
+        setStudySessions(parsedSessions);
+      } catch (e) {
+        console.error("Error parsing saved sessions:", e);
+        setDefaultStudySessions();
+      }
+    } else {
+      setDefaultStudySessions();
+    }
+
+    fetchLearningInsights();
+  }, []);
+
+  const setDefaultStudySessions = () => {
+    const defaultSessions = [
       { id: '1', topic: 'Introduction to Machine Learning', date: new Date(), duration: 45, completed: true },
       { id: '2', topic: 'Neural Networks Basics', date: new Date(Date.now() + 86400000), duration: 60, completed: false },
       { id: '3', topic: 'Data Preprocessing', date: new Date(Date.now() + 172800000), duration: 30, completed: false },
-    ]);
+    ];
+    
+    setStudySessions(defaultSessions);
+    localStorage.setItem('studySessions', JSON.stringify(defaultSessions));
+  };
 
-    setLearningInsights([
-      {
-        id: 'insight-1',
-        type: 'strength',
-        topic: 'Algorithm Comprehension',
-        description: 'You show strong understanding of algorithmic concepts and logic structures.',
-        actionable: 'Consider exploring advanced algorithm design patterns.'
-      },
-      {
-        id: 'insight-2',
-        type: 'weakness',
-        topic: 'Statistical Analysis',
-        description: 'Data suggests you struggle with applying statistical methods to ML problems.',
-        actionable: 'Review the fundamentals of statistical distributions and hypothesis testing.'
-      },
-      {
-        id: 'insight-3',
-        type: 'recommendation',
-        topic: 'Neural Network Architecture',
-        description: "Based on your interests and progress, you're ready for more advanced neural network concepts.",
-        actionable: 'Explore convolutional and recurrent neural networks next.'
+  const fetchLearningInsights = async () => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const insights = [
+        {
+          id: 'insight-1',
+          type: 'strength' as const,
+          topic: 'Algorithm Comprehension',
+          description: 'You show strong understanding of algorithmic concepts and logic structures.',
+          actionable: 'Consider exploring advanced algorithm design patterns.'
+        },
+        {
+          id: 'insight-2',
+          type: 'weakness' as const,
+          topic: 'Statistical Analysis',
+          description: 'Data suggests you struggle with applying statistical methods to ML problems.',
+          actionable: 'Review the fundamentals of statistical distributions and hypothesis testing.'
+        },
+        {
+          id: 'insight-3',
+          type: 'recommendation' as const,
+          topic: 'Neural Network Architecture',
+          description: "Based on your interests and progress, you're ready for more advanced neural network concepts.",
+          actionable: 'Explore convolutional and recurrent neural networks next.'
+        }
+      ];
+      
+      setLearningInsights(insights);
+    } catch (err) {
+      console.error("Error fetching learning insights:", err);
+      setError("Failed to load learning insights. Please try again later.");
+    }
+  };
+
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('personalizedSettings');
+    
+    if (savedSettings) {
+      try {
+        setPersonalizedSettings(JSON.parse(savedSettings));
+      } catch (e) {
+        console.error("Error parsing saved settings:", e);
       }
-    ]);
+    }
   }, []);
 
   useEffect(() => {
@@ -235,48 +287,91 @@ export default function AICompanion() {
   };
 
   const toggleFavorite = (id: string) => {
-    if (favorites.includes(id)) {
-      setFavorites(favorites.filter(fav => fav !== id));
-    } else {
-      setFavorites([...favorites, id]);
-    }
+    const newFavorites = favorites.includes(id)
+      ? favorites.filter(fav => fav !== id)
+      : [...favorites, id];
+    
+    setFavorites(newFavorites);
+    localStorage.setItem('favoriteSummaries', JSON.stringify(newFavorites));
   };
 
   const handleScheduleSession = () => {
-    if (!date) return;
+    if (!date || !input.trim()) {
+      setError("Please enter a session topic and select a date");
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
 
     const newSession: StudySession = {
-      id: `session-${studySessions.length + 1}`,
-      topic: input || "Study Session",
+      id: `session-${Date.now()}`,
+      topic: input.trim(),
       date: date,
       duration: 60,
       completed: false
     };
 
-    setStudySessions([...studySessions, newSession]);
+    const updatedSessions = [...studySessions, newSession];
+    setStudySessions(updatedSessions);
+    
+    localStorage.setItem('studySessions', JSON.stringify(updatedSessions));
+    
+    toast({
+      title: "Session Scheduled",
+      description: `"${input.trim()}" scheduled for ${date.toLocaleDateString()}`,
+      variant: "default"
+    });
+    
+    setInput('');
   };
 
   const updateLearningStylePreference = (style: keyof LearningStyle, value: number) => {
-    setPersonalizedSettings({
+    const updatedSettings = {
       ...personalizedSettings,
       learningStyle: {
         ...personalizedSettings.learningStyle,
         [style]: value
       }
-    });
+    };
+    
+    setPersonalizedSettings(updatedSettings);
+    localStorage.setItem('personalizedSettings', JSON.stringify(updatedSettings));
   };
 
   const toggleContentPreference = (preference: string) => {
-    if (personalizedSettings.contentPreferences.includes(preference)) {
-      setPersonalizedSettings({
-        ...personalizedSettings,
-        contentPreferences: personalizedSettings.contentPreferences.filter(p => p !== preference)
-      });
-    } else {
-      setPersonalizedSettings({
-        ...personalizedSettings,
-        contentPreferences: [...personalizedSettings.contentPreferences, preference]
-      });
+    const updatedPreferences = personalizedSettings.contentPreferences.includes(preference)
+      ? personalizedSettings.contentPreferences.filter(p => p !== preference)
+      : [...personalizedSettings.contentPreferences, preference];
+    
+    const updatedSettings = {
+      ...personalizedSettings,
+      contentPreferences: updatedPreferences
+    };
+    
+    setPersonalizedSettings(updatedSettings);
+    localStorage.setItem('personalizedSettings', JSON.stringify(updatedSettings));
+  };
+
+  const updateDifficultyLevel = (difficulty: 'beginner' | 'intermediate' | 'advanced') => {
+    const updatedSettings = {
+      ...personalizedSettings,
+      preferredDifficulty: difficulty
+    };
+    
+    setPersonalizedSettings(updatedSettings);
+    localStorage.setItem('personalizedSettings', JSON.stringify(updatedSettings));
+  };
+
+  const toggleNotifications = (enabled: boolean) => {
+    const updatedSettings = {
+      ...personalizedSettings,
+      notificationsEnabled: enabled
+    };
+    
+    setPersonalizedSettings(updatedSettings);
+    localStorage.setItem('personalizedSettings', JSON.stringify(updatedSettings));
+    
+    if (enabled && "Notification" in window) {
+      Notification.requestPermission();
     }
   };
 
@@ -306,16 +401,17 @@ export default function AICompanion() {
               </div>
               <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">AI Study Companion</h1>
             </div>
-            <motion.div 
-              className="flex items-center bg-slate-800/60 backdrop-blur-xl p-2 rounded-lg border border-slate-700/50"
-              whileHover={{ scale: 1.03 }}
-            >
-              <BsPersonCheck className="text-indigo-400 mr-2" />
-              <span className="text-slate-300 text-sm">Your Learning Profile</span>
-            </motion.div>
+            <Link href="/home">
+              <motion.div 
+                className="flex items-center bg-slate-800/60 backdrop-blur-xl p-2 rounded-lg border border-slate-700/50 cursor-pointer"
+                whileHover={{ scale: 1.03 }}
+              >
+                <BsPersonCheck className="text-indigo-400 mr-2" />
+                <span className="text-slate-300 text-sm">Your Learning Profile</span>
+              </motion.div>
+            </Link>
           </div>
           
-          {/* Error notification */}
           <AnimatePresence>
             {error && (
               <motion.div 
@@ -331,11 +427,6 @@ export default function AICompanion() {
             )}
           </AnimatePresence>
           
-         
-             
-                  
-          
-          {/* Content Tabs */}
           <motion.div 
             className="bg-slate-800/60 backdrop-blur-xl rounded-xl shadow-2xl border border-slate-700/50"
             initial={{ opacity: 0, y: 20 }}
@@ -360,145 +451,289 @@ export default function AICompanion() {
                 </TabsList>
               </div>
               
-              {/* Personalized Tab */}
               <TabsContent value="personalized" className="p-6">
                 <div className="grid gap-6 md:grid-cols-2">
                   <Card className="bg-slate-700/40 border-slate-600/50">
                     <CardHeader>
-                      <CardTitle className="text-slate-200">Your Learning Style</CardTitle>
+                      <CardTitle className="text-slate-200">Your Learning Profile</CardTitle>
                       <CardDescription className="text-slate-400">
-                        We adapt content to match your preferred learning style
+                        We adapt content based on your learning preferences
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <div className="space-y-3">
-                        <div className="flex justify-between">
-                          <Label className="text-slate-300">Visual</Label>
-                          <span className="text-indigo-400">{personalizedSettings.learningStyle.visual}%</span>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-300 font-medium">Completed Courses</span>
+                          <span className="text-indigo-400">4</span>
                         </div>
-                        <Slider
-                          value={[personalizedSettings.learningStyle.visual]}
-                          max={100}
-                          step={1}
-                          className="[&>span]:bg-indigo-500"
-                          onValueChange={(value) => updateLearningStylePreference('visual', value[0])}
-                        />
-                        
-                        <div className="flex justify-between">
-                          <Label className="text-slate-300">Auditory</Label>
-                          <span className="text-indigo-400">{personalizedSettings.learningStyle.auditory}%</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-300 font-medium">Quizzes Taken</span>
+                          <span className="text-indigo-400">12</span>
                         </div>
-                        <Slider
-                          value={[personalizedSettings.learningStyle.auditory]}
-                          max={100}
-                          step={1}
-                          className="[&>span]:bg-indigo-500"
-                          onValueChange={(value) => updateLearningStylePreference('auditory', value[0])}
-                        />
-                        
-                        <div className="flex justify-between">
-                          <Label className="text-slate-300">Reading/Writing</Label>
-                          <span className="text-indigo-400">{personalizedSettings.learningStyle.reading}%</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-300 font-medium">Study Hours</span>
+                          <span className="text-indigo-400">32.5h</span>
                         </div>
-                        <Slider
-                          value={[personalizedSettings.learningStyle.reading]}
-                          max={100}
-                          step={1}
-                          className="[&>span]:bg-indigo-500"
-                          onValueChange={(value) => updateLearningStylePreference('reading', value[0])}
-                        />
-                        
-                        <div className="flex justify-between">
-                          <Label className="text-slate-300">Kinesthetic</Label>
-                          <span className="text-indigo-400">{personalizedSettings.learningStyle.kinesthetic}%</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-300 font-medium">Current Streak</span>
+                          <span className="text-indigo-400">7 days</span>
                         </div>
-                        <Slider
-                          value={[personalizedSettings.learningStyle.kinesthetic]}
-                          max={100}
-                          step={1}
-                          className="[&>span]:bg-indigo-500"
-                          onValueChange={(value) => updateLearningStylePreference('kinesthetic', value[0])}
-                        />
+                      </div>
+                      
+                      <div className="pt-4 border-t border-slate-600/30">
+                        <h4 className="text-slate-200 font-medium mb-3">Learning Style Analysis</h4>
+                        <div className="space-y-3">
+                          <div>
+                            <div className="flex justify-between mb-1">
+                              <Label className="text-slate-300">Visual</Label>
+                              <span className="text-indigo-400">{personalizedSettings.learningStyle.visual}%</span>
+                            </div>
+                            <div className="w-full bg-slate-600/40 h-2 rounded-full">
+                              <div 
+                                className="bg-gradient-to-r from-indigo-500 to-blue-500 h-2 rounded-full"
+                                style={{ width: `${personalizedSettings.learningStyle.visual}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <div className="flex justify-between mb-1">
+                              <Label className="text-slate-300">Auditory</Label>
+                              <span className="text-indigo-400">{personalizedSettings.learningStyle.auditory}%</span>
+                            </div>
+                            <div className="w-full bg-slate-600/40 h-2 rounded-full">
+                              <div 
+                                className="bg-gradient-to-r from-indigo-500 to-blue-500 h-2 rounded-full"
+                                style={{ width: `${personalizedSettings.learningStyle.auditory}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <div className="flex justify-between mb-1">
+                              <Label className="text-slate-300">Reading</Label>
+                              <span className="text-indigo-400">{personalizedSettings.learningStyle.reading}%</span>
+                            </div>
+                            <div className="w-full bg-slate-600/40 h-2 rounded-full">
+                              <div 
+                                className="bg-gradient-to-r from-indigo-500 to-blue-500 h-2 rounded-full"
+                                style={{ width: `${personalizedSettings.learningStyle.reading}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <div className="flex justify-between mb-1">
+                              <Label className="text-slate-300">Kinesthetic</Label>
+                              <span className="text-indigo-400">{personalizedSettings.learningStyle.kinesthetic}%</span>
+                            </div>
+                            <div className="w-full bg-slate-600/40 h-2 rounded-full">
+                              <div 
+                                className="bg-gradient-to-r from-indigo-500 to-blue-500 h-2 rounded-full"
+                                style={{ width: `${personalizedSettings.learningStyle.kinesthetic}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
-                    <CardFooter>
-                      <Button className="w-full bg-gradient-to-r from-indigo-600 to-blue-600">
-                        Run Learning Style Assessment
-                      </Button>
-                    </CardFooter>
                   </Card>
                   
                   <Card className="bg-slate-700/40 border-slate-600/50">
                     <CardHeader>
-                      <CardTitle className="text-slate-200">Your Preferences</CardTitle>
+                      <CardTitle className="text-slate-200">Your Study Tasks</CardTitle>
                       <CardDescription className="text-slate-400">
-                        Customize how you want to learn
+                        Manage your learning activities
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="space-y-4">
-                        <div>
-                          <Label className="text-slate-300 mb-2 block">Preferred Content Types</Label>
-                          <div className="grid grid-cols-2 gap-3">
-                            {['Video tutorials', 'Interactive exercises', 'Concise summaries', 'Text articles', 'Code examples', 'Visual diagrams'].map(preference => (
-                              <div key={preference} className="flex items-center space-x-2">
+                    <CardContent className="space-y-4">
+                      {/* List of upcoming tasks with delete functionality */}
+                      <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                        {studySessions
+                          .filter(session => !session.completed)
+                          .map(session => (
+                            <motion.div 
+                              key={session.id} 
+                              className="p-3 rounded-lg bg-slate-800/70 border border-slate-700/70 flex justify-between items-center hover:border-indigo-500/30 transition-all"
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, x: -20 }}
+                            >
+                              <div className="flex items-center">
                                 <Checkbox 
-                                  checked={personalizedSettings.contentPreferences.includes(preference)}
-                                  onCheckedChange={() => toggleContentPreference(preference)}
-                                  className="data-[state=checked]:bg-indigo-500"
+                                  id={`task-${session.id}`}
+                                  className="mr-3 data-[state=checked]:bg-indigo-500 data-[state=checked]:border-indigo-500"
+                                  onCheckedChange={() => {
+                                    const updatedSessions = studySessions.map(s => 
+                                      s.id === session.id ? {...s, completed: true} : s
+                                    );
+                                    setStudySessions(updatedSessions);
+                                    localStorage.setItem('studySessions', JSON.stringify(updatedSessions));
+                                    toast({
+                                      title: "Task completed",
+                                      description: `"${session.topic}" marked as done`,
+                                      variant: "default"
+                                    });
+                                  }}
                                 />
-                                <label className="text-sm text-slate-300">{preference}</label>
+                                <div>
+                                  <h4 className="text-slate-200 font-medium">{session.topic}</h4>
+                                  <div className="flex items-center text-xs text-slate-400">
+                                    <BsCalendar3 className="mr-1" />
+                                    <span>
+                                      {session.date.toLocaleDateString(undefined, {
+                                        weekday: 'short',
+                                        month: 'short',
+                                        day: 'numeric'
+                                      })}
+                                    </span>
+                                    <span className="mx-2">•</span>
+                                    <span>{session.duration} min</span>
+                                  </div>
+                                </div>
                               </div>
-                            ))}
+                              <div className="flex items-center gap-2">
+                                {session.priority && (
+                                  <Badge className={`
+                                    ${session.priority === 'high' ? 'bg-red-500/20 text-red-400' : 
+                                      session.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' : 
+                                      'bg-green-500/20 text-green-400'}
+                                  `}>
+                                    {session.priority}
+                                  </Badge>
+                                )}
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                                  onClick={() => {
+                                    const updatedSessions = studySessions.filter(s => s.id !== session.id);
+                                    setStudySessions(updatedSessions);
+                                    localStorage.setItem('studySessions', JSON.stringify(updatedSessions));
+                                    toast({
+                                      title: "Task removed",
+                                      description: `"${session.topic}" removed from your tasks`,
+                                      variant: "destructive"
+                                    });
+                                  }}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M3 6h18"></path>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                  </svg>
+                                </Button>
+                              </div>
+                            </motion.div>
+                          ))}
+                        {studySessions.filter(session => !session.completed).length === 0 && (
+                          <div className="text-center p-4 bg-slate-800/50 rounded-lg border border-dashed border-slate-700">
+                            <p className="text-slate-400 text-sm">No tasks yet. Add one below.</p>
                           </div>
+                        )}
+                      </div>
+                      
+                      {/* Add new task UI */}
+                      <div className="pt-4 border-t border-slate-700/50">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-slate-200 font-medium">Add New Task</h4>
+                          <Badge variant="outline" className="border-indigo-400/30 text-indigo-400">
+                            Plan Your Learning
+                          </Badge>
                         </div>
                         
-                        <div>
-                          <Label className="text-slate-300 mb-2 block">Default Difficulty Level</Label>
-                          <Select 
-                            value={personalizedSettings.preferredDifficulty}
-                            onValueChange={(value: 'beginner' | 'intermediate' | 'advanced') => 
-                              setPersonalizedSettings({...personalizedSettings, preferredDifficulty: value})}
+                        <div className="bg-slate-800/70 p-4 rounded-lg border border-slate-700/50 shadow-inner">
+                          <div className="mb-4">
+                            <Label className="text-slate-300 mb-2 block text-sm font-medium">Task Topic</Label>
+                            <Input
+                              placeholder="What do you want to learn?"
+                              className="bg-slate-900/60 border-slate-700 text-slate-200 focus:border-indigo-500 focus:ring-indigo-500/30"
+                              value={input}
+                              onChange={(e) => setInput(e.target.value)}
+                            />
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                              <Label className="text-slate-300 mb-2 block text-sm font-medium">Estimated Duration</Label>
+                              <Select defaultValue="60" onValueChange={(value) => setTaskDuration(parseInt(value))}>
+                                <SelectTrigger className="bg-slate-900/60 border-slate-700 text-slate-200">
+                                  <SelectValue placeholder="Select duration" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-slate-800 border-slate-700">
+                                  <SelectItem value="15">15 minutes</SelectItem>
+                                  <SelectItem value="30">30 minutes</SelectItem>
+                                  <SelectItem value="45">45 minutes</SelectItem>
+                                  <SelectItem value="60">60 minutes</SelectItem>
+                                  <SelectItem value="90">90 minutes</SelectItem>
+                                  <SelectItem value="120">2 hours</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div>
+                              <Label className="text-slate-300 mb-2 block text-sm font-medium">Priority</Label>
+                              <Select defaultValue="medium" onValueChange={(value) => setTaskPriority(value as 'low' | 'medium' | 'high')}>
+                                <SelectTrigger className="bg-slate-900/60 border-slate-700 text-slate-200">
+                                  <SelectValue placeholder="Select priority" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-slate-800 border-slate-700">
+                                  <SelectItem value="low">Low</SelectItem>
+                                  <SelectItem value="medium">Medium</SelectItem>
+                                  <SelectItem value="high">High</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          
+                          <Button 
+                            onClick={() => {
+                              if (!input.trim()) {
+                                setError("Please enter a task topic");
+                                setTimeout(() => setError(null), 3000);
+                                return;
+                              }
+
+                              const newTask: StudySession = {
+                                id: `task-${Date.now()}`,
+                                topic: input.trim(),
+                                date: new Date(),
+                                duration: taskDuration || 60,
+                                completed: false,
+                                priority: taskPriority || 'medium'
+                              };
+
+                              const updatedSessions = [...studySessions, newTask];
+                              setStudySessions(updatedSessions);
+                              localStorage.setItem('studySessions', JSON.stringify(updatedSessions));
+                              
+                              toast({
+                                title: "Task Added",
+                                description: `"${input.trim()}" added to your tasks`,
+                                variant: "default"
+                              });
+                              
+                              setInput('');
+                            }}
+                            className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:shadow-lg hover:shadow-indigo-500/20 transition py-3 mt-2"
                           >
-                            <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-200">
-                              <SelectValue placeholder="Select difficulty" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
-                              <SelectItem value="beginner">Beginner</SelectItem>
-                              <SelectItem value="intermediate">Intermediate</SelectItem>
-                              <SelectItem value="advanced">Advanced</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-1">
-                            <Label className="text-slate-300">Enable Learning Notifications</Label>
-                            <p className="text-xs text-slate-400">Get reminders and suggestions</p>
-                          </div>
-                          <Switch 
-                            checked={personalizedSettings.notificationsEnabled}
-                            onCheckedChange={(checked) => 
-                              setPersonalizedSettings({...personalizedSettings, notificationsEnabled: checked})}
-                            className="data-[state=checked]:bg-indigo-500"
-                          />
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                              <path d="M12 5v14"></path>
+                              <path d="M5 12h14"></path>
+                            </svg>
+                            Add Learning Task
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
-                    <CardFooter>
-                      <Button className="w-full bg-gradient-to-r from-indigo-600 to-blue-600">
-                        Save Preferences
-                      </Button>
-                    </CardFooter>
                   </Card>
                 </div>
                 
-                {/* Recommended for you section */}
                 <div className="mt-8">
                   <div className="flex items-center mb-4">
                     <MdRecommend className="text-indigo-400 text-xl mr-2" />
                     <h3 className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">
-                      Recommended For You
+                      AI Recommendations
                     </h3>
                   </div>
                   
@@ -507,36 +742,41 @@ export default function AICompanion() {
                       className="bg-slate-700/40 rounded-lg border border-slate-600/50 p-5 hover:shadow-lg transition"
                       whileHover={{ y: -5 }}
                     >
-                      <Badge className="bg-indigo-400/20 text-indigo-400 mb-3">Matches Your Style</Badge>
-                      <h4 className="text-lg font-semibold text-slate-200 mb-2">Visual Introduction to Neural Networks</h4>
-                      <p className="text-slate-400 text-sm mb-3">An interactive visualization of neural network concepts with diagrams and animations.</p>
-                      <Button className="w-full bg-gradient-to-r from-indigo-600 to-blue-600">Start Learning</Button>
+                      <Badge className="bg-indigo-400/20 text-indigo-400 mb-3">Based on Learning Style</Badge>
+                      <h4 className="text-lg font-semibold text-slate-200 mb-2">Visual Guide to Neural Networks</h4>
+                      <p className="text-slate-400 text-sm mb-3">Interactive visualizations designed for your visual learning preference.</p>
+                      <Link href="/quizzes">
+                        <Button className="w-full bg-gradient-to-r from-indigo-600 to-blue-600">Explore Content</Button>
+                      </Link>
                     </motion.div>
                     
                     <motion.div 
                       className="bg-slate-700/40 rounded-lg border border-slate-600/50 p-5 hover:shadow-lg transition"
                       whileHover={{ y: -5 }}
                     >
-                      <Badge className="bg-green-400/20 text-green-400 mb-3">Knowledge Gap</Badge>
-                      <h4 className="text-lg font-semibold text-slate-200 mb-2">Statistical Foundations for ML</h4>
-                      <p className="text-slate-400 text-sm mb-3">Addresses your identified weakness in statistical concepts with practical examples.</p>
-                      <Button className="w-full bg-gradient-to-r from-indigo-600 to-blue-600">Start Learning</Button>
+                      <Badge className="bg-green-400/20 text-green-400 mb-3">Personalized Path</Badge>
+                      <h4 className="text-lg font-semibold text-slate-200 mb-2">Advanced Statistical Methods</h4>
+                      <p className="text-slate-400 text-sm mb-3">Targeted practice on topics our AI identified for improvement.</p>
+                      <Link href="/quizzes">
+                        <Button className="w-full bg-gradient-to-r from-indigo-600 to-blue-600">Start Learning</Button>
+                      </Link>
                     </motion.div>
                     
                     <motion.div 
                       className="bg-slate-700/40 rounded-lg border border-slate-600/50 p-5 hover:shadow-lg transition"
                       whileHover={{ y: -5 }}
                     >
-                      <Badge className="bg-yellow-400/20 text-yellow-400 mb-3">Advanced Topic</Badge>
-                      <h4 className="text-lg font-semibold text-slate-200 mb-2">CNN Architecture Masterclass</h4>
-                      <p className="text-slate-400 text-sm mb-3">Building on your algorithm strengths - dive into advanced neural network design.</p>
-                      <Button className="w-full bg-gradient-to-r from-indigo-600 to-blue-600">Start Learning</Button>
+                      <Badge className="bg-yellow-400/20 text-yellow-400 mb-3">Next Topic</Badge>
+                      <h4 className="text-lg font-semibold text-slate-200 mb-2">Convolutional Networks Workshop</h4>
+                      <p className="text-slate-400 text-sm mb-3">Hands-on practice to build on your algorithm comprehension strength.</p>
+                      <Link href="/quizzes">
+                        <Button className="w-full bg-gradient-to-r from-indigo-600 to-blue-600">Join Now</Button>
+                      </Link>
                     </motion.div>
                   </div>
                 </div>
               </TabsContent>
               
-              {/* Insights Tab */}
               <TabsContent value="insights" className="p-6">
                 <div className="mb-6">
                   <div className="flex items-center mb-4">
@@ -630,170 +870,8 @@ export default function AICompanion() {
                     ))}
                   </div>
                 </div>
-                
-                <Button className="w-full bg-gradient-to-r from-indigo-600 to-blue-600">
-                  Generate Comprehensive Learning Report
-                </Button>
               </TabsContent>
               
-              {/* Learning Paths Tab */}
-              <TabsContent value="paths" className="p-6">
-                {learningPaths.length > 0 ? (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {learningPaths.map(path => (
-                      <motion.div 
-                        key={path.id}
-                        className="bg-slate-700/40 rounded-lg border border-slate-600/50 p-5 hover:shadow-lg transition"
-                        whileHover={{ scale: 1.02 }}
-                      >
-                        <div className="flex justify-between items-start mb-4">
-                          <h3 className="text-lg font-semibold text-slate-200">{path.title}</h3>
-                          <Badge className={`${
-                            path.difficulty === 'beginner' ? 'bg-green-400/20 text-green-400' :
-                            path.difficulty === 'intermediate' ? 'bg-yellow-400/20 text-yellow-400' :
-                            'bg-red-400/20 text-red-400'
-                          }`}>
-                            {path.difficulty}
-                          </Badge>
-                        </div>
-                        <p className="text-slate-300 text-sm mb-4">{path.description}</p>
-                        
-                        <div className="mb-4">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm text-slate-400">Progress</span>
-                            <span className="text-sm text-indigo-400">{path.progress}%</span>
-                          </div>
-                          <div className="w-full bg-slate-600/30 rounded-full h-2">
-                            <div 
-                              className="bg-gradient-to-r from-indigo-500 to-blue-500 h-2 rounded-full"
-                              style={{ width: `${path.progress}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                        
-                        <div className="mb-4">
-                          <h4 className="text-sm font-medium text-slate-300 mb-2">Topics:</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {path.topics.map((topic, index) => (
-                              <span 
-                                key={index}
-                                className="bg-slate-800 text-slate-300 px-2 py-1 rounded-full text-xs"
-                              >
-                                {topic}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <div className="flex justify-between">
-                          <Button variant="outline" className="border-slate-600 text-slate-300">
-                            <FiBookmark className="mr-1" /> Save
-                          </Button>
-                          <Button className="bg-gradient-to-r from-indigo-600 to-blue-600">
-                            Continue Learning
-                          </Button>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <div className="inline-block p-4 bg-slate-700/40 rounded-full mb-4">
-                      <FiBook className="text-4xl text-indigo-400" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-slate-200 mb-2">No Learning Paths Yet</h3>
-                    <p className="text-slate-400 mb-6">Enter a topic above to generate personalized learning paths</p>
-                  </div>
-                )}
-              </TabsContent>
-              
-              {/* Quizzes Tab */}
-              <TabsContent value="quizzes" className="p-6">
-                {quizzes.length > 0 ? (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {quizzes.map(quiz => (
-                      <motion.div 
-                        key={quiz.id}
-                        className="bg-slate-700/40 rounded-lg border border-slate-600/50 p-5 hover:shadow-lg transition"
-                        whileHover={{ scale: 1.02 }}
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="text-lg font-semibold text-slate-200">{quiz.title}</h3>
-                          <Badge className={`${
-                            quiz.difficulty === 'easy' ? 'bg-green-400/20 text-green-400' :
-                            quiz.difficulty === 'medium' ? 'bg-yellow-400/20 text-yellow-400' :
-                            'bg-red-400/20 text-red-400'
-                          }`}>
-                            {quiz.difficulty}
-                          </Badge>
-                        </div>
-                        <p className="text-slate-400 mb-1">Topic: {quiz.topic}</p>
-                        <p className="text-slate-400 mb-4">{quiz.questions} questions</p>
-                        
-                        <Button
-                          className={`w-full ${
-                            quiz.completed 
-                              ? 'bg-green-600 hover:bg-green-700' 
-                              : 'bg-gradient-to-r from-indigo-600 to-blue-600'
-                          }`}
-                        >
-                          {quiz.completed ? 'Retake Quiz' : 'Start Quiz'}
-                        </Button>
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <div className="inline-block p-4 bg-slate-700/40 rounded-full mb-4">
-                      <MdQuiz className="text-4xl text-indigo-400" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-slate-200 mb-2">No Quizzes Available</h3>
-                    <p className="text-slate-400 mb-6">Enter a topic above to generate quizzes to test your knowledge</p>
-                  </div>
-                )}
-              </TabsContent>
-              
-              {/* Summaries Tab */}
-              <TabsContent value="summaries" className="p-6">
-                {summaries.length > 0 ? (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {summaries.map(summary => (
-                      <motion.div 
-                        key={summary.id}
-                        className="bg-slate-700/40 rounded-lg border border-slate-600/50 p-5 hover:shadow-lg transition"
-                        whileHover={{ scale: 1.02 }}
-                      >
-                        <div className="mb-4">
-                          <div className="flex justify-between items-start mb-2">
-                            <h3 className="text-lg font-semibold text-slate-200">{summary.topic}</h3>
-                            <span className="text-xs text-slate-400">{summary.date}</span>
-                          </div>
-                        </div>
-                        <p className="text-slate-300 text-sm">{summary.content}</p>
-                        <div className="flex justify-between mt-4 pt-3 border-t border-slate-600/50">
-                          <Button variant="outline" className="border-slate-600 text-slate-300">
-                            <FiStar className={`mr-1 ${favorites.includes(summary.id) ? 'text-yellow-400' : ''}`} />
-                            {favorites.includes(summary.id) ? 'Favorited' : 'Favorite'}
-                          </Button>
-                          <Button variant="outline" className="border-slate-600 text-slate-300">
-                            <FiDownload className="mr-1" /> Download
-                          </Button>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <div className="inline-block p-4 bg-slate-700/40 rounded-full mb-4">
-                      <FiMessageSquare className="text-4xl text-indigo-400" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-slate-200 mb-2">No Summaries Available</h3>
-                    <p className="text-slate-400 mb-6">Enter a topic above to generate concise summaries for quick review</p>
-                  </div>
-                )}
-              </TabsContent>
-              
-              {/* Chatbot Tab */}
               <TabsContent value="chatbot" className="p-6">
                 <Chatbot />
               </TabsContent>
