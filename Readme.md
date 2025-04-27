@@ -25,9 +25,6 @@ MindSurf is an adaptive learning platform that leverages AI to personalize educa
 <div align="center" style="margin-bottom: 20px;">
   <img src="https://github.com/P47Parzival/Janabs-HackSpire2025/blob/main/frontend/public/Architecture%20diagram.gif?raw=true" alt="Architecture Diagram" width="800"/>
 </div>
-<div align="center" style="margin-bottom: 20px;">
-  <img src="https://github.com/P47Parzival/Janabs-HackSpire2025/blob/main/frontend/public/Architecture%20diagram.gif?raw=true" alt="Architecture Diagram" width="800"/>
-</div>
 
 ## 🛠️ Technology Stack
 
