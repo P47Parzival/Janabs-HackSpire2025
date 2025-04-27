@@ -144,7 +144,7 @@ Janabs-HackSpire2025/
 - Dhruv Mali
 - Siddhant Sankesara
 - Dev Kadakia
-- Dhwanish Desai 230188
+- Dhwanish Desai 
 
 ## 📋 Getting Started
 
