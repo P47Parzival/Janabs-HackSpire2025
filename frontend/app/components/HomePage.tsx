@@ -565,7 +565,7 @@ export default function HomePage() {
         'Targeted resource suggestions',
         'Comprehensive review materials'
       ],
-      image: '/personalisedimage.jpg' // Updated to use your image
+      image: '/personalisedimage4.jpg' // Updated to use your image
     }
   ];
 
@@ -722,11 +722,17 @@ export default function HomePage() {
                           ))}
                         </ul>
                       </div>
-                      <FloatingCard delay={0.3}>
-                        <div className="border border-slate-700/50 rounded-lg overflow-hidden shadow-xl hover:shadow-indigo-500/10 transition duration-300">
-                          <img src={tab.image} alt={tab.title} className="rounded-lg transform hover:scale-105 transition duration-500" />
-                        </div>
-                      </FloatingCard>
+                      <div className="md:w-1/2 flex justify-end">
+                        <FloatingCard delay={0.3}>
+                          <div className="border border-slate-700/50 rounded-lg overflow-hidden shadow-xl hover:shadow-indigo-500/10 transition duration-300">
+                            <img 
+                              src={tab.image} 
+                              alt={tab.title} 
+                              className="rounded-lg transform hover:scale-105 transition duration-500 w-full h-auto object-cover max-h-68" 
+                            />
+                          </div>
+                        </FloatingCard>
+                      </div>
                     </div>
                   </motion.div>
                 )
