@@ -16,6 +16,9 @@ MindSurf is an adaptive learning platform that leverages AI to personalize educa
 
 ## AI agent wokflow diagram and RAG Diagram and Architecture Diagram
 
+<div align="center" style="margin-bottom: 20px;">
+  <img src="https://github.com/P47Parzival/Janabs-HackSpire2025/blob/main/frontend/public/Architecture%20diagram.gif?raw=true" alt="Architecture Diagram" width="800"/>
+</div>
 <div align="center">
   <div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 20px;">
     <img src="https://github.com/P47Parzival/Susap/blob/main/public/diagram-export-13-4-2025-7_31_11-am.png?raw=true" alt="AI workflow" width="500"/>
