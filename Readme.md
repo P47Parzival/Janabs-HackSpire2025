@@ -14,13 +14,16 @@ MindSurf is an adaptive learning platform that leverages AI to personalize educa
 - **Progress Tracking**: Visual insights into your learning journey with personalized recommendations
 - **Voice Assistant**: Natural voice interaction using VAPI for a hands-free learning experience
 
-## AI agent wokflow diagram and RAG Diagram
+## AI agent wokflow diagram and RAG Diagram and Architecture Diagram
 
 <div align="center">
   <div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 20px;">
-    <img src="https://github.com/P47Parzival/Susap/blob/main/public/diagram-export-13-4-2025-7_31_11-am.png?raw=true" alt="AI workflow" width="350"/>
-    <img src="https://github.com/P47Parzival/Susap/blob/main/public/MindsurfRAG5.gif?raw=true" alt="Architecture Diagram" width="450"/>
+    <img src="https://github.com/P47Parzival/Susap/blob/main/public/diagram-export-13-4-2025-7_31_11-am.png?raw=true" alt="AI workflow" width="500"/>
+    <img src="https://github.com/P47Parzival/Susap/blob/main/public/MindsurfRAG5.gif?raw=true" alt="Architecture Diagram" width="600"/>
   </div>
+</div>
+<div align="center" style="margin-bottom: 20px;">
+  <img src="https://github.com/P47Parzival/Janabs-HackSpire2025/blob/main/frontend/public/Architecture%20diagram.gif?raw=true" alt="Architecture Diagram" width="800"/>
 </div>
 
 ## 🛠️ Technology Stack
